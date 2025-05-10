@@ -98,31 +98,35 @@ def call_with_messages():
                 "role": "user"
             }
     ]
-    
-    # 模型的第一轮调用
+    count=1
+
+    # 模型的第count轮调用
     first_response = get_response(messages)
-    print(f"\n第一轮调用结果：{first_response}")
+    print(f"\n第{count}轮调用结果：{first_response}")
     assistant_output = first_response['output']['choices'][0]['message']
     messages.append(assistant_output)
     if 'tool_calls' not in assistant_output:  # 如果模型判断无需调用工具，则将assistant的回复直接打印出来，无需进行模型的第二轮调用
         print(f"最终答案：{assistant_output['content']}")
         return
-    # 如果模型选择的工具是get_current_weather
-    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
-        tool_info = {"name": "get_current_weather", "role":"tool"}
-        location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
-        tool_info['content'] = get_current_weather(location)
-    # 如果模型选择的工具是get_current_time
-    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
-        tool_info = {"name": "get_current_time", "role":"tool"}
-        tool_info['content'] = get_current_time()
-    print(f"工具输出信息：{tool_info['content']}")
-    messages.append(tool_info)
+    else:
+        while 'tool_calls' in assistant_output:
+            count+=1
+            # 如果模型选择的工具是get_current_weather
+            if assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
+                tool_info = {"name": "get_current_weather", "role":"tool"}
+                location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
+                tool_info['content'] = get_current_weather(location)
+            # 如果模型选择的工具是get_current_time
+            elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
+                tool_info = {"name": "get_current_time", "role":"tool"}
+                tool_info['content'] = get_current_time()
+            print(f"工具输出信息：{tool_info['content']}")
+            messages.append(tool_info)
+            count_response = get_response(messages)
+            print(f"第{count}轮调用结果：{count_response}")
+            assistant_output=count_response['output']['choices'][0]['message']
+        print(f"最终答案：{count_response['output']['choices'][0]['message']['content']}")
 
-    # 模型的第二轮调用，对工具的输出进行总结
-    second_response = get_response(messages)
-    print(f"第二轮调用结果：{second_response}")
-    print(f"最终答案：{second_response['output']['choices'][0]['message']['content']}")
 
 if __name__ == '__main__':
     call_with_messages()
