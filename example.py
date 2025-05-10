@@ -38,7 +38,16 @@ tools = [
 
 # 模拟天气查询工具。返回结果示例：“北京今天是晴天。”
 def get_current_weather(location):
-    return f"{location}今天是晴天。 "
+    params = {
+        "key": "SDKyJowJ9YLkPC4sI",
+        "location": location,
+        "language": "zh-Hans",
+        "unit": "c",
+    }
+    url = "https://api.seniverse.com/v3/weather/now.json"
+    r = requests.get(url, params=params) 
+    data = r.json()["results"][0]['now']
+    return f"{location}今天是{data['text']}，温度{data['temperature']}摄氏度 "
 
 # 查询当前时间的工具。返回结果示例：“当前时间：2024-04-15 17:15:18。“
 def get_current_time():
@@ -51,7 +60,7 @@ def get_current_time():
 
 def get_response(messages):
     # TODO：你自己的API
-    api_key = "YOUR_API_KEY"
+    api_key = "sk-ebc102be4c824eb592fe70217856069d"
     url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
     headers = {'Content-Type': 'application/json',
             'Authorization':f'Bearer {api_key}'}
@@ -70,6 +79,12 @@ def get_response(messages):
     return response.json()
 
 messages = [
+    {
+        "role": "system",
+        "content": """你是一个很有帮助的助手。如果用户提问关于天气的问题，请调用 ‘get_current_weather’ 函数;
+     如果用户提问关于时间的问题，请调用‘get_current_time’函数。
+     请以友好的语气回答问题。""",
+    },
     {
         "role": "user",
         "content": "今天天气怎么样？"
@@ -95,7 +110,7 @@ def call_with_messages():
     # 如果模型选择的工具是get_current_weather
     elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
         tool_info = {"name": "get_current_weather", "role":"tool"}
-        location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['properties']['location']
+        location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
         tool_info['content'] = get_current_weather(location)
     # 如果模型选择的工具是get_current_time
     elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
