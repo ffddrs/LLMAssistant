@@ -33,8 +33,37 @@ tools = [
                 "location"
             ]
         }
+    },
+    {
+        "type":"function",
+        "function":{
+            "name":"get_movie_info",
+            "description":"当用户想查询电影相关问题时非常有用，返回目标电影的相关信息，以字符串格式的python字典储存",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "movie_name":{
+                        "type":"string",
+                        "description":"当用户要查询电影相关的问题时非常有用"
+                    }
+                }
+            },
+            "required":[
+                "movie_name"
+            ]
+        }
     }
 ]
+
+def get_movie_info(movie_name):
+    with open('movies_list.json','r',encoding="utf-8") as unparsedmovieslist:
+        with open('comments_list.json','r',encoding='utf-8') as unparsedcommentslist:
+            movieslist=json.load(unparsedmovieslist)
+            commentslist=json.load(unparsedcommentslist)
+            targetmovie=[movie for movie in movieslist if movie_name in movie['title']]
+            movieid=targetmovie[0]['id']
+            targetmovie[0]['comments']=[comment for comment in commentslist if comment['movie_id']==movieid]
+            return str(targetmovie[0])
 
 # 模拟天气查询工具。返回结果示例：“北京今天是晴天。”
 def get_current_weather(location):
@@ -82,7 +111,7 @@ messages = [
     {
         "role": "system",
         "content": """你是一个很有帮助的助手。如果用户提问关于天气的问题，请调用 ‘get_current_weather’ 函数;
-     如果用户提问关于时间的问题，请调用‘get_current_time’函数。
+     如果用户提问关于时间的问题，请调用‘get_current_time’函数；如果用户提问关于电影的问题，请调用‘get_movie_info'函数。
      请以友好的语气回答问题。""",
     },
     {
@@ -92,40 +121,47 @@ messages = [
 ]
 
 def call_with_messages():
-    messages = [
-            {
-                "content": input('请输入：'),  # 提问示例："现在几点了？" "一个小时后几点" "北京天气如何？"
-                "role": "user"
-            }
-    ]
-    count=1
+    messages=[]
+    while True:
+        usermessage=input('请输入（输入exit停止对话）：')
+        if usermessage=='exit':
+            break
+        messages.append({
+                    "content": usermessage,  # 提问示例："现在几点了？" "一个小时后几点" "北京天气如何？"
+                    "role": "user"
+                })
+        count=1
 
-    # 模型的第count轮调用
-    first_response = get_response(messages)
-    print(f"\n第{count}轮调用结果：{first_response}")
-    assistant_output = first_response['output']['choices'][0]['message']
-    messages.append(assistant_output)
-    if 'tool_calls' not in assistant_output:  # 如果模型判断无需调用工具，则将assistant的回复直接打印出来，无需进行模型的第二轮调用
-        print(f"最终答案：{assistant_output['content']}")
-        return
-    else:
-        while 'tool_calls' in assistant_output:
-            count+=1
-            # 如果模型选择的工具是get_current_weather
-            if assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
-                tool_info = {"name": "get_current_weather", "role":"tool"}
-                location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
-                tool_info['content'] = get_current_weather(location)
-            # 如果模型选择的工具是get_current_time
-            elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
-                tool_info = {"name": "get_current_time", "role":"tool"}
-                tool_info['content'] = get_current_time()
-            print(f"工具输出信息：{tool_info['content']}")
-            messages.append(tool_info)
-            count_response = get_response(messages)
-            print(f"第{count}轮调用结果：{count_response}")
-            assistant_output=count_response['output']['choices'][0]['message']
-        print(f"最终答案：{count_response['output']['choices'][0]['message']['content']}")
+        # 模型的第count轮调用
+        first_response = get_response(messages)
+        print(f"\n第{count}轮调用结果：{first_response}")
+        assistant_output = first_response['output']['choices'][0]['message']
+        messages.append(assistant_output)
+        if 'tool_calls' not in assistant_output:  # 如果模型判断无需调用工具，则将assistant的回复直接打印出来，无需进行模型的第二轮调用
+            print(f"最终答案：{assistant_output['content']}")
+            return
+        else:
+            while 'tool_calls' in assistant_output:
+                count+=1
+                # 如果模型选择的工具是get_current_weather
+                if assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
+                    tool_info = {"name": "get_current_weather", "role":"tool"}
+                    location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
+                    tool_info['content'] = get_current_weather(location)
+                # 如果模型选择的工具是get_current_time
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
+                    tool_info = {"name": "get_current_time", "role":"tool"}
+                    tool_info['content'] = get_current_time()
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_movie_info':
+                    tool_info={'name':'get_movie_info','role':'tool'}
+                    movie_name = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['movie_name']
+                    tool_info['content']=get_movie_info(movie_name)
+                print(f"工具输出信息：{tool_info['content']}")
+                messages.append(tool_info)
+                count_response = get_response(messages)
+                print(f"第{count}轮调用结果：{count_response}")
+                assistant_output=count_response['output']['choices'][0]['message']
+            print(f"最终答案：{count_response['output']['choices'][0]['message']['content']}")
 
 
 if __name__ == '__main__':
