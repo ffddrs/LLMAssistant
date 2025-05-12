@@ -38,7 +38,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "get_earthquake_info",
-            "description": "当你想查询地震相关信息时非常有用。该工具返回指定区域，指定时间范围内，指定震级范围内的所有地震详细信息， 结果以字符串格式的python列表储存。请注意：所有的经纬度，时间，震级范围都不要太大，否则可能返回巨量数据，因此请根据用户需求，合理选择经纬度，时间和震级区间。请务必注意：如有可能，请尽量填满所有参数。",
+            "description": "当你想查询地震相关信息时非常有用。该工具返回指定区域，指定时间范围内，指定震级范围内的所有地震详细信息， 结果以字符串格式的python列表储存。请注意：所有的经纬度，时间，震级范围都不要太大，否则可能返回巨量数据，因此请根据用户需求，合理选择经纬度，时间和震级区间。请务必注意：如有可能，请尽量填满所有参数。请着重注意：如用户查询某一特定地震，查询范围务必略放宽，否则可能查询不到",
             "parameters": {  
                 "type": "object",
                 "properties": {
@@ -129,6 +129,8 @@ def get_earthquake_info(starttime=None,endtime=None,minlatitude=None,maxlatitude
     minmagnitude = float(minmagnitude) if minmagnitude is not None else None
     maxmagnitude = float(maxmagnitude) if maxmagnitude is not None else None
 
+    if starttime==endtime:
+        endtime=starttime+'T23:59:59'
 
     params = {
         "format": "geojson",
