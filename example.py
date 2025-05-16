@@ -2,6 +2,8 @@ import requests
 import os
 from datetime import datetime
 import json
+import sympy
+from sympy import asin, acos, atan, sin, cos, tan, sinh, cosh, tanh, sec, csc, cot, acot, acsc, asec, exp, log, limit, pi, sqrt, integrate, degree, diff
 
 # 定义工具列表，模型在选择使用哪个工具时会参考工具的name和description
 tools = [
@@ -117,8 +119,37 @@ Examples:
                 "movie_name"
             ]
         }
+    },
+
+    {
+        "type":"function",
+        "function":{
+            "name":"calculator",
+            "description":"当用户需要数学计算时非常有用。",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "expr":{
+                        "type":"string",
+                        "description":"这是需要计算或求解的数学表达式,以sympy的形式"
+                    },
+                    "func":{
+                        "type":"string",
+                        "description":"功能代码，需要计算数学表达式时是‘eval’，需要求解方程时是‘solve’"
+                    }
+                }
+            }
+        }
     }
 ]
+
+def calculator(expr,func):
+    expr=sympy.parse_expr(expr)
+    if func=="solve":
+        return str(sympy.solve(expr))
+    if func=="eval":
+        return str(sympy.N(expr))
+    
 
 def get_earthquake_info(starttime=None,endtime=None,minlatitude=None,maxlatitude=None,minlongitude=None,maxlongitude=None,minmagnitude=3,maxmagnitude=None):
 
@@ -210,7 +241,8 @@ messages = [
         "content": """你是一个很有帮助的助手。如果用户提问关于天气的问题，请调用 ‘get_current_weather’ 函数;
      如果用户提问关于时间的问题，请调用‘get_current_time’函数；
      如果用户提问关于电影的问题，请调用‘get_movie_info'函数；
-     如果用户提问关于地震的问题，请调用‘get_earthquake_info’函数。
+     如果用户提问关于地震的问题，请调用‘get_earthquake_info’函数；
+     如果用户提问关于数学计算的问题，请调用‘calculator’函数。
      回答时请确定好当前时间，必要时可调用工具函数。
      请以友好的语气回答问题。""",
     },
@@ -259,6 +291,12 @@ def call_with_messages():
                     tool_info = {'name': 'get_earthquake_info', 'role': 'tool'}
                     kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
                     tool_info['content'] = get_earthquake_info(**kwargs)
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'calculator':
+                    tool_info = {'name':'calculator', 'role': 'tool'}
+                    expr = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['expr']
+                    func = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['func']
+                    tool_info['content'] = calculator(expr,func)
+
                 print(f"工具输出信息：{tool_info['content']}")
                 messages.append(tool_info)
                 count_response = get_response(messages)
