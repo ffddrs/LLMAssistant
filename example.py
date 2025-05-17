@@ -401,41 +401,44 @@ def call_with_messages():
         else:
             while 'tool_calls' in assistant_output:
                 count+=1
-                # 如果模型选择的工具是get_current_weather
-                if assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
-                    tool_info = {"name": "get_current_weather", "role": "tool"}
-                    location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
-                    tool_info['content'] = get_current_weather(location)
-                # 如果模型选择的工具是get_current_time
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
-                    tool_info = {"name": "get_current_time", "role": "tool"}
-                    tool_info['content'] = get_current_time()
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_movie_info':
-                    tool_info = {'name':'get_movie_info', 'role': 'tool'}
-                    movie_name = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['movie_name']
-                    tool_info['content'] = get_movie_info(movie_name)
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_earthquake_info':
-                    tool_info = {'name': 'get_earthquake_info', 'role': 'tool'}
-                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
-                    tool_info['content'] = get_earthquake_info(**kwargs)
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'calculator':
-                    tool_info = {'name':'calculator', 'role': 'tool'}
-                    expr = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['expr']
-                    func = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['func']
-                    tool_info['content'] = calculator(expr,func)
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_intraday':
-                    tool_info = {'name':'get_stock_info_intraday', 'role': 'tool'}
-                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
-                    tool_info['content'] = get_stock_info_intraday(**kwargs)
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_daily':
-                    tool_info = {'name':'get_stock_info_daily', 'role': 'tool'}
-                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
-                    tool_info['content'] = get_stock_info_daily(**kwargs)
-                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_weekly':
-                    tool_info = {'name':'get_stock_info_weekly', 'role': 'tool'}
-                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
-                    tool_info['content'] = get_stock_info_weekly(**kwargs)
-
+                try:
+                    # 如果模型选择的工具是get_current_weather
+                    if assistant_output['tool_calls'][0]['function']['name'] == 'get_current_weather':
+                        tool_info = {"name": "get_current_weather", "role": "tool"}
+                        location = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['location']
+                        tool_info['content'] = get_current_weather(location)
+                    # 如果模型选择的工具是get_current_time
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_current_time':
+                        tool_info = {"name": "get_current_time", "role": "tool"}
+                        tool_info['content'] = get_current_time()
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_movie_info':
+                        tool_info = {'name':'get_movie_info', 'role': 'tool'}
+                        movie_name = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['movie_name']
+                        tool_info['content'] = get_movie_info(movie_name)
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_earthquake_info':
+                        tool_info = {'name': 'get_earthquake_info', 'role': 'tool'}
+                        kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                        tool_info['content'] = get_earthquake_info(**kwargs)
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'calculator':
+                        tool_info = {'name':'calculator', 'role': 'tool'}
+                        expr = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['expr']
+                        func = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['func']
+                        tool_info['content'] = calculator(expr,func)
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_intraday':
+                        tool_info = {'name':'get_stock_info_intraday', 'role': 'tool'}
+                        kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                        tool_info['content'] = get_stock_info_intraday(**kwargs)
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_daily':
+                        tool_info = {'name':'get_stock_info_daily', 'role': 'tool'}
+                        kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                        tool_info['content'] = get_stock_info_daily(**kwargs)
+                    elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_weekly':
+                        tool_info = {'name':'get_stock_info_weekly', 'role': 'tool'}
+                        kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                        tool_info['content'] = get_stock_info_weekly(**kwargs)
+                except:
+                    tool_info = {'name':assistant_output['tool_calls'][0]['function']['name'], 'role': 'tool'}
+                    tool_info['content'] = "工具调用失败，发生异常错误"
                 print(f"工具输出信息：{tool_info['content']}")
                 messages.append(tool_info)
                 count_response = get_response(messages)
