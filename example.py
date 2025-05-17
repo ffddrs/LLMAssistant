@@ -436,9 +436,9 @@ def call_with_messages():
                         tool_info = {'name':'get_stock_info_weekly', 'role': 'tool'}
                         kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
                         tool_info['content'] = get_stock_info_weekly(**kwargs)
-                except:
+                except Exception as e:
                     tool_info = {'name':assistant_output['tool_calls'][0]['function']['name'], 'role': 'tool'}
-                    tool_info['content'] = "工具调用失败，发生异常错误"
+                    tool_info['content'] = f"工具调用失败，发生异常错误, 错误信息：{e}"
                 print(f"工具输出信息：{tool_info['content']}")
                 messages.append(tool_info)
                 count_response = get_response(messages)
