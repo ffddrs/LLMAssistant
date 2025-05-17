@@ -138,10 +138,135 @@ Examples:
                         "description":"功能代码，需要计算数学表达式时是‘eval’，需要求解方程时是‘solve’"
                     }
                 }
-            }
+            },
+            "required":[
+                "expr",
+                "func"
+            ]
+        }
+    },
+    {
+        "type": "function",
+        "function":{
+            "name":"get_stock_info_intraday",
+            "description":"This API returns current and 20+ years of historical intraday OHLCV time series of the equity specified, covering pre-market and post-market hours where applicable (e.g., 4:00am to 8:00pm Eastern Time for the US market). You can query both raw (as-traded) and split/dividend-adjusted intraday data from this endpoint. The OHLCV data is sometimes called 'candles' in finance literature.",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "symbol":{
+                        "type":"string",
+                        "description":"The name of the equity of your choice. For example: symbol=IBM"
+                    },
+                    "interval":{
+                        "type":"string",
+                        "description":"Time interval between two consecutive data points in the time series. The following values are supported: 1min, 5min, 15min, 30min, 60min"
+                    },
+                    "month":{
+                        "type":"string",
+                        "description":"By default, this parameter is not set and the API will return intraday data for the most recent days of trading. You can use the month parameter (in YYYY-MM format) to query a specific month in history. For example, month=2009-01. Any month in the last 20+ years since 2000-01 (January 2000) is supported."
+                    },
+                    "outputsize":{
+                        'type':"string",
+                        "description":"By default, outputsize=compact. Strings compact and full are accepted with the following specifications: compact returns only the latest 100 data points in the intraday time series; full returns trailing 30 days of the most recent intraday data if the month parameter (see above) is not specified, or the full intraday data for a specific month in history if the month parameter is specified. The 'compact' option is recommended if you would like to reduce the data size of each API call."
+                    }
+                }
+            },
+            "required":[
+                "symbol",
+                "interval",
+                "month",
+            ]
+        }
+    },
+    {
+        "type": "function",
+        "function":{
+            "name":"get_stock_info_daily",
+            "description":"This API returns raw (as-traded) daily time series (date, daily open, daily high, daily low, daily close, daily volume) of the global equity specified, covering 20+ years of historical data. The OHLCV data is sometimes called 'candles' in finance literature.",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "symbol":{
+                        "type":"string",
+                        "description":"The name of the equity of your choice. For example: symbol=IBM"
+                    },
+                    "outputsize":{
+                        'type':"string",
+                        "description":"By default, outputsize=compact. Strings compact and full are accepted with the following specifications: compact returns only the latest 100 data points; full returns the full-length time series of 20+ years of historical data. The 'compact' option is recommended if you would like to reduce the data size of each API call."
+                    }
+                }
+            },
+            "required":[
+                "symbol"
+            ]
+        }
+    },
+    {
+        "type": "function",
+        "function":{
+            "name":"get_stock_info_weekly",
+            "description":"This API returns weekly time series (last trading day of each week, weekly open, weekly high, weekly low, weekly close, weekly volume) of the global equity specified, covering 20+ years of historical data.",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "symbol":{
+                        "type":"string",
+                        "description":"The name of the equity of your choice. For example: symbol=IBM"
+                    }
+                }
+            },
+            "required":[
+                "symbol"
+            ]
         }
     }
+
+
 ]
+
+def get_stock_info_intraday(symbol,month,interval="15min",outputsize=None):
+    url= 'https://www.alphavantage.co/query'
+    apikey= "DGSZGS0ZM33EM4UU"
+    params = {
+        'function': 'TIME_SERIES_INTRADAY',
+        'symbol': symbol,
+        'interval': interval,
+        'month': month,
+        "outputsize": outputsize,
+        'apikey': apikey
+    }
+    r=requests.get(url,params=params)
+    data=json.loads(r.text)
+    data=data[f"Time Series ({interval})"]
+    return str(data)
+
+def get_stock_info_daily(symbol,outputsize=None):
+    url= 'https://www.alphavantage.co/query'
+    apikey= "DGSZGS0ZM33EM4UU"
+    params = {
+        'function': 'TIME_SERIES_DAILY',
+        'symbol': symbol,
+        "outputsize": outputsize,
+        'apikey': apikey
+    }
+    r=requests.get(url,params=params)
+    data=json.loads(r.text)
+    data=data[f"Time Series (Daily)"]
+    return str(data)
+
+def get_stock_info_weekly(symbol):
+    url= 'https://www.alphavantage.co/query'
+    apikey= "DGSZGS0ZM33EM4UU"
+    params = {
+        'function': 'TIME_SERIES_WEEKLY',
+        'symbol': symbol,
+        'apikey': apikey
+    }
+    r=requests.get(url,params=params)
+    data=json.loads(r.text)
+    data=data[f"Weekly Time Series"]
+    return str(data)
+
 
 def calculator(expr,func):
     expr=sympy.parse_expr(expr)
@@ -238,7 +363,9 @@ def get_response(messages):
 messages = [
     {
         "role": "system",
-        "content": """你是一个很有帮助的助手。如果用户提问关于天气的问题，请调用 ‘get_current_weather’ 函数;
+        "content": """你是一个很有帮助的助手。
+     注意：在每次对话开始之前，必须至少进行一次当前时间查询，即调用‘get_current_time’函数，以确保时间正确，不需要重复调用
+     如果用户提问关于天气的问题，请调用 ‘get_current_weather’ 函数;
      如果用户提问关于时间的问题，请调用‘get_current_time’函数；
      如果用户提问关于电影的问题，请调用‘get_movie_info'函数；
      如果用户提问关于地震的问题，请调用‘get_earthquake_info’函数；
@@ -296,6 +423,18 @@ def call_with_messages():
                     expr = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['expr']
                     func = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])['func']
                     tool_info['content'] = calculator(expr,func)
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_intraday':
+                    tool_info = {'name':'get_stock_info_intraday', 'role': 'tool'}
+                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                    tool_info['content'] = get_stock_info_intraday(**kwargs)
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_daily':
+                    tool_info = {'name':'get_stock_info_daily', 'role': 'tool'}
+                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                    tool_info['content'] = get_stock_info_daily(**kwargs)
+                elif assistant_output['tool_calls'][0]['function']['name'] == 'get_stock_info_weekly':
+                    tool_info = {'name':'get_stock_info_weekly', 'role': 'tool'}
+                    kwargs = json.loads(assistant_output['tool_calls'][0]['function']['arguments'])
+                    tool_info['content'] = get_stock_info_weekly(**kwargs)
 
                 print(f"工具输出信息：{tool_info['content']}")
                 messages.append(tool_info)
