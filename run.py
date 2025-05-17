@@ -5,6 +5,7 @@ import os
 def main():
     # 获取当前脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
     example_py = os.path.join(script_dir, 'example.py')
     if not os.path.exists(example_py):
         print('未找到 example.py 文件！')
